@@ -88,14 +88,6 @@ func newRecentCmd() *cobra.Command {
 }
 
 
-func newReopenCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "reopen",
-		Short: "Reopen an abandoned or resolved item",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 func newSetupCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "setup",
