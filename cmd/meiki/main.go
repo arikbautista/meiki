@@ -55,14 +55,6 @@ func newBriefCmd() *cobra.Command {
 	}
 }
 
-func newReviewCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "review",
-		Short: "Generate a daily review",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 
 
 func newSetupCmd() *cobra.Command {
