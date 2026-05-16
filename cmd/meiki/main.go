@@ -47,14 +47,6 @@ func notImplemented(cmd *cobra.Command) {
 	os.Exit(1)
 }
 
-func newCaptureCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "capture",
-		Short: "Capture a work entry",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 func newBriefCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "brief",
