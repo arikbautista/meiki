@@ -297,6 +297,14 @@ func ReadEntriesRange(from, to time.Time) ([]Entry, error) {
 	return result, nil
 }
 
+// ReadEntriesFromPath reads all entries from an explicit JSONL file path.
+// It returns an empty slice (no error) if the file does not exist.
+// Blank lines and malformed lines are skipped with a log warning.
+// Used by the scanner package and tests that need path-based access.
+func ReadEntriesFromPath(path string) ([]Entry, error) {
+	return readEntriesFromPath(path)
+}
+
 // readEntriesFromPath reads entries from an explicit file path.
 // Used internally and by tests.
 func readEntriesFromPath(path string) ([]Entry, error) {
