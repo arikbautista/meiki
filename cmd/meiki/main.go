@@ -63,13 +63,6 @@ func newReviewCmd() *cobra.Command {
 	}
 }
 
-func newOpenCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "open",
-		Short: "List open items",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
 
 func newTodayCmd() *cobra.Command {
 	return &cobra.Command{
