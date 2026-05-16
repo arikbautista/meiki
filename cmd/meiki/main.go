@@ -64,14 +64,6 @@ func newReviewCmd() *cobra.Command {
 }
 
 
-func newRecentCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "recent",
-		Short: "Show recent entries",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 
 func newSetupCmd() *cobra.Command {
 	return &cobra.Command{
