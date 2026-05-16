@@ -64,14 +64,6 @@ func newReviewCmd() *cobra.Command {
 }
 
 
-func newTodayCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "today",
-		Short: "Show today's entries",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 func newRecentCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "recent",
