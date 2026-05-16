@@ -87,13 +87,6 @@ func newRecentCmd() *cobra.Command {
 	}
 }
 
-func newAbandonCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "abandon",
-		Short: "Mark an open item as abandoned",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
 
 func newResolveCmd() *cobra.Command {
 	return &cobra.Command{
