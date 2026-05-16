@@ -88,14 +88,6 @@ func newRecentCmd() *cobra.Command {
 }
 
 
-func newResolveCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "resolve",
-		Short: "Mark an open item as resolved",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
 func newReopenCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "reopen",
