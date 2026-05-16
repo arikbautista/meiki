@@ -47,16 +47,6 @@ func notImplemented(cmd *cobra.Command) {
 	os.Exit(1)
 }
 
-func newBriefCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "brief",
-		Short: "Show the morning briefing",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
-
-
 func newSetupCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "setup",
