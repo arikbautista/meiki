@@ -1,0 +1,36 @@
+version: 2
+
+builds:
+  - main: ./cmd/meiki
+    binary: meiki
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - format: tar.gz
+    name_template: "meiki-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: arikbautista
+    name: meiki
+
+brews:
+  - repository:
+      owner: arikbautista
+      name: homebrew-meiki
+    homepage: "https://github.com/arikbautista/meiki"
+    description: "Work memory for AI CLI sessions"
+    install: |
+      bin.install "meiki"

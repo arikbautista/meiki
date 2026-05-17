@@ -1,0 +1,41 @@
+Epic 1: Foundation — COMPLETE
+
+Story 1: Project Scaffolding — DONE
+  - Go module initialized (github.com/arikbautista/meiki)
+  - Directory structure: cmd/meiki/, internal/{entry,scanner,review,brief,config}/, instructions/
+  - Cobra root command with version flag, 11 subcommand stubs
+  - All stubs print "not implemented" and exit 1
+
+Story 2: Data Directory & Configuration — DONE
+  - XDG path resolution (ConfigDir, DataDir) respecting XDG_CONFIG_HOME/XDG_DATA_HOME
+  - Config struct with TOML parsing, sensible defaults, partial override support
+  - EnsureDataDir() creates entries/ and reviews/ subdirs idempotently
+  - 12 tests passing
+
+Story 3: Entry Model & JSONL I/O — DONE
+  - Entry struct with all spec fields + unknown field preservation via custom JSON marshal
+  - ULID generation (oklog/ulid/v2) with monotonic entropy
+  - AppendEntry() with O_APPEND atomic writes, creates intermediate dirs
+  - ReadEntries/ReadEntriesRange with graceful handling of missing/malformed files
+  - 27 tests passing (including concurrent write test)
+
+Story 4: State File Management — DONE
+  - State struct (LastBriefTS, LastReviewTS)
+  - LoadState() returns zero-value on missing file
+  - SaveState() uses atomic temp-file + rename
+  - UpdateBriefTS/UpdateReviewTS helpers
+  - 10 tests passing
+
+Story 5: Open-Item Scanner — DONE
+  - ScanOpenItems() derives open todos/blockers from JSONL log
+  - Resolves supersedes chains (A→B→C, terminal state matters)
+  - Handles closes (achievement closing a todo)
+  - Reopened items appear as open
+  - 21 tests passing
+
+Story 6: Priority Decay & Stale Detection — DONE
+  - ClassifyItem() returns TriageNormal/TriageOverdue/TriageStale
+  - Overdue rules: due date > priority-based (tomorrow/this-week/someday)
+  - ISO week calculation for this-week priority
+  - staleDays config respected
+  - 30 tests passing

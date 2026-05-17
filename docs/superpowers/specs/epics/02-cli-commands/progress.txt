@@ -1,0 +1,59 @@
+Epic 2: CLI Commands — COMPLETE
+
+Story 1: Capture Command — DONE
+  - meiki capture <type> <content> with all flags (--project, --tags, --priority, --due, --closes, --external-ref)
+  - Type validation, type-specific flag guards, --closes validates open todo
+  - Auto-detects project from cwd, sets source:"cli", defaults priority/status
+  - 21 tests passing
+
+Story 2: Abandon Command — DONE
+  - meiki abandon <id> [reason] marks open todo as abandoned
+  - Writes mutation entry with supersedes, validates target is open todo
+  - Error messages for not-found, non-todo, already-closed
+  - 12 tests passing
+
+Story 3: Resolve Command — DONE
+  - meiki resolve <id> [how] marks open blocker as resolved
+  - Same pattern as abandon but for blockers
+  - 13 tests passing
+
+Story 4: Reopen Command — DONE
+  - meiki reopen <id> restores open status on closed/abandoned/resolved items
+  - Supersedes points to latest mutation (not original)
+  - Validates already-open, types without status
+  - 11 tests passing
+
+Story 5: Open Command — DONE
+  - meiki open [--json] displays open todos and blockers grouped by type
+  - Todos sorted by priority then capture date, overdue items flagged
+  - JSON output includes computed fields (age_days, overdue_days, triage)
+  - 16 tests passing
+
+Story 6: Today Command — DONE
+  - meiki today [--json] shows today's entries grouped by type
+  - Type group order: achievements, learnings, blockers, todos, ideas
+  - Mutation entries visually distinguished with [status] labels
+  - 20 tests passing
+
+Story 7: Recent Command — DONE
+  - meiki recent [--days N] [--type T] [--json] filtered multi-day tail
+  - Defaults: 7 days, all types. Groups by date then type
+  - --type validates against closed set
+  - 23 tests passing
+
+Story 8: Review Command — DONE
+  - meiki review [--silent] generates daily review markdown
+  - Writes to <data_dir>/reviews/YYYY/MM/YYYY-MM-DD.md
+  - Groups by type, includes open items, blocker resolutions inline
+  - Idempotent, updates last_review_ts, --silent suppresses stdout
+  - 23 tests passing (13 package + 10 command)
+
+Story 9: Brief Command — DONE
+  - meiki brief [--json] morning briefing with debouncing
+  - Review summary from most recent review file (up to 7 days back)
+  - Open todos sorted by priority, capped at brief_max_open_todos
+  - Needs Triage section for 3+ days overdue items
+  - Debounce: same-day repeat with no new entries → empty stdout
+  - Fresh install → welcome message
+  - Updates last_brief_ts after producing output
+  - 11 tests passing

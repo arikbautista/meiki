@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -42,23 +41,3 @@ func newRootCmd() *cobra.Command {
 	return root
 }
 
-func notImplemented(cmd *cobra.Command) {
-	fmt.Fprintf(os.Stderr, "meiki %s: not implemented\n", cmd.Name())
-	os.Exit(1)
-}
-
-func newSetupCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "setup",
-		Short: "Initialize meiki configuration",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
-
-func newDoctorCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "doctor",
-		Short: "Diagnose configuration and data directory issues",
-		Run:   func(cmd *cobra.Command, args []string) { notImplemented(cmd) },
-	}
-}
