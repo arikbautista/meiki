@@ -2,6 +2,8 @@ package scanner
 
 import (
 	"time"
+
+	"github.com/arikbautista/meiki/internal/dayutil"
 )
 
 // ItemTriage classifies how overdue an open item is.
@@ -25,26 +27,24 @@ const (
 //   - priority "this-week":   overdue when today > end of ISO week of capture
 //   - priority "someday":     never overdue
 //   - no priority, no due:    never overdue
-func daysOverdue(item OpenItem, today time.Time) int {
+func daysOverdue(item OpenItem, today time.Time, loc *time.Location, dayStartHour int) int {
 	orig := item.Entry
-
-	// Normalise today to midnight UTC.
-	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Parse capture timestamp.
 	captureTime, err := time.Parse(time.RFC3339, orig.Timestamp)
 	if err != nil {
 		return 0
 	}
-	captureDay := time.Date(captureTime.Year(), captureTime.Month(), captureTime.Day(), 0, 0, 0, 0, time.UTC)
+	captureDay := dayutil.LogicalDay(captureTime, loc, dayStartHour)
+
+	// today is already a logical day passed by the caller.
 
 	// Explicit due date takes precedence over priority-based calculation.
 	if orig.Due != "" {
-		dueDay, err := time.Parse("2006-01-02", orig.Due)
+		dueDay, err := time.ParseInLocation("2006-01-02", orig.Due, loc)
 		if err != nil {
 			return 0
 		}
-		// Overdue when today > due date, i.e. today is at least dueDay+1.
 		days := int(today.Sub(dueDay).Hours() / 24)
 		if days <= 0 {
 			return 0
@@ -55,13 +55,6 @@ func daysOverdue(item OpenItem, today time.Time) int {
 	// Priority-based calculation.
 	switch orig.Priority {
 	case "tomorrow":
-		// "tomorrow" means the item was meant to be done the day after it was
-		// captured. It becomes overdue starting the day after capture — i.e., the
-		// very next day the item was supposed to be completed.
-		//
-		// Acceptance criterion: captured yesterday → 1 day overdue today.
-		// If captureDay = today-1, days = today - captureDay = 1. Correct.
-		// If captureDay = today, days = 0 → not overdue. Correct.
 		days := int(today.Sub(captureDay).Hours() / 24)
 		if days <= 0 {
 			return 0
@@ -69,12 +62,7 @@ func daysOverdue(item OpenItem, today time.Time) int {
 		return days
 
 	case "this-week":
-		// End of the ISO week that the capture day belongs to.
-		// ISO week starts on Monday; end of week is Sunday.
-		// We find the Sunday that ends the capture week.
-		weekday := int(captureDay.Weekday()) // 0=Sunday, 1=Mon, ..., 6=Sat
-		// Days until end of week (Sunday). If captureDay is Monday (1),
-		// end is 6 days later. If Sunday (0), end is same day.
+		weekday := int(captureDay.Weekday())
 		var daysUntilSunday int
 		if weekday == 0 {
 			daysUntilSunday = 0
@@ -102,12 +90,12 @@ func daysOverdue(item OpenItem, today time.Time) int {
 //
 // staleDays is the threshold at which an item transitions from TriageOverdue to
 // TriageStale. The config default is 3.
-func ClassifyItem(item OpenItem, today time.Time, staleDays int) (ItemTriage, int) {
+func ClassifyItem(item OpenItem, today time.Time, staleDays int, loc *time.Location, dayStartHour int) (ItemTriage, int) {
 	if staleDays <= 0 {
 		staleDays = 3
 	}
 
-	overdue := daysOverdue(item, today)
+	overdue := daysOverdue(item, today, loc, dayStartHour)
 	if overdue <= 0 {
 		return TriageNormal, 0
 	}

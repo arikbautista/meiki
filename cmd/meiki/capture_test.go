@@ -22,6 +22,9 @@ import (
 func runCapture(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("XDG_DATA_HOME", dataDir)
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	writeTestConfig(t, cfgDir)
 
 	cmd := newCaptureCmd()
 	var out bytes.Buffer

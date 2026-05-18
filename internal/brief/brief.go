@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/arikbautista/meiki/internal/scanner"
 )
@@ -58,14 +59,15 @@ func triageName(t scanner.ItemTriage) string {
 // GenerateBriefing produces a Briefing given the data directory, config, and state.
 // It handles debouncing, fresh-install detection, and content generation.
 func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*Briefing, error) {
-	now := time.Now().UTC()
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	loc := cfg.Location()
+	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
 
 	// --- Debounce check ---
+	now := time.Now()
 	if state.LastBriefTS != "" {
 		lastBrief, err := time.Parse(time.RFC3339, state.LastBriefTS)
 		if err == nil {
-			lastBriefDay := time.Date(lastBrief.Year(), lastBrief.Month(), lastBrief.Day(), 0, 0, 0, 0, time.UTC)
+			lastBriefDay := dayutil.LogicalDay(lastBrief, loc, cfg.UI.DayStartHour)
 			if lastBriefDay.Equal(today) {
 				// Brief already produced today. Check for new entries since last_brief_ts.
 				hasNew, err := hasNewEntriesSince(dataDir, now, lastBrief)
@@ -80,7 +82,7 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 	}
 
 	// --- Scan open items ---
-	todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays)
+	todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays, today, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return nil, fmt.Errorf("scan open items: %w", err)
 	}
@@ -104,7 +106,7 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 	var triageTodos []BriefItem
 
 	for _, item := range todos {
-		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, cfg.UI.DayStartHour)
 		bi := BriefItem{
 			ID:          item.Entry.ID,
 			Type:        "todo",
@@ -141,7 +143,7 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 	// Build blockers BriefItems.
 	var briefBlockers []BriefItem
 	for _, item := range blockers {
-		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, cfg.UI.DayStartHour)
 		briefBlockers = append(briefBlockers, BriefItem{
 			ID:          item.Entry.ID,
 			Type:        "blocker",
@@ -157,7 +159,7 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 	var needsTriage []BriefItem
 	needsTriage = append(needsTriage, triageTodos...)
 	for _, item := range blockers {
-		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, cfg.UI.DayStartHour)
 		if triage == scanner.TriageStale {
 			needsTriage = append(needsTriage, BriefItem{
 				ID:          item.Entry.ID,

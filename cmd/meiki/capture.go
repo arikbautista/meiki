@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/arikbautista/meiki/internal/scanner"
 	"github.com/spf13/cobra"
@@ -164,8 +165,15 @@ func parseTags(raw string) []string {
 func validateCloses(id string) error {
 	dataDir := config.DataDir()
 
+	cfg, cfgErr := config.LoadConfig()
+	if cfgErr != nil {
+		return fmt.Errorf("load config: %w", cfgErr)
+	}
+	loc := cfg.Location()
+	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
+
 	// Use a generous scan window (90 days) so we find older todos.
-	todos, _, err := scanner.ScanOpenItems(dataDir, 90)
+	todos, _, err := scanner.ScanOpenItems(dataDir, 90, today, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return fmt.Errorf("cannot scan open items: %w", err)
 	}

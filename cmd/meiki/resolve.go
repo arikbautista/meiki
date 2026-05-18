@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/arikbautista/meiki/internal/scanner"
 	"github.com/spf13/cobra"
@@ -72,8 +73,15 @@ Example:
 func findEntryForResolve(id string) (entry.Entry, error) {
 	dataDir := config.DataDir()
 
+	cfg, cfgErr := config.LoadConfig()
+	if cfgErr != nil {
+		return entry.Entry{}, fmt.Errorf("load config: %w", cfgErr)
+	}
+	loc := cfg.Location()
+	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
+
 	// First check open blockers — the common and fast path.
-	_, blockers, err := scanner.ScanOpenItems(dataDir, 90)
+	_, blockers, err := scanner.ScanOpenItems(dataDir, 90, today, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return entry.Entry{}, fmt.Errorf("cannot scan open items: %w", err)
 	}

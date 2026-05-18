@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
 	"github.com/arikbautista/meiki/internal/entry"
@@ -16,6 +17,9 @@ import (
 func runAbandon(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("XDG_DATA_HOME", dataDir)
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	writeTestConfig(t, cfgDir)
 
 	cmd := newAbandonCmd()
 	var out bytes.Buffer
@@ -137,7 +141,7 @@ func TestAbandon_todoNoLongerAppearsInOpenList(t *testing.T) {
 		t.Fatalf("abandon failed: %v", err)
 	}
 
-	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -276,7 +280,7 @@ func TestAbandon_nonTodoNotInOpenTodos(t *testing.T) {
 	}
 
 	// ScanOpenItems should return the blocker in blockers, not todos.
-	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -313,7 +317,7 @@ func TestAbandon_alreadyAbandonedNotInOpenList(t *testing.T) {
 	}
 
 	// After abandoning, the todo should no longer be in open todos.
-	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}

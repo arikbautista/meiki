@@ -23,6 +23,9 @@ import (
 func runReview(t *testing.T, tmpDir string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("XDG_DATA_HOME", tmpDir)
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	writeTestConfig(t, cfgDir)
 
 	cmd := newReviewCmd()
 	var out bytes.Buffer

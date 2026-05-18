@@ -86,7 +86,7 @@ func TestScanOpenItems_simpleOpen(t *testing.T) {
 	e := makeEntry("todo-001", "todo", "write unit tests", "open", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{e})
 
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestScanOpenItems_openBlocker(t *testing.T) {
 	e := makeEntry("blk-001", "blocker", "CI is broken", "open", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{e})
 
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestScanOpenItems_closedViaAchievement(t *testing.T) {
 	ach := makeEntry("ach-001", "achievement", "deployed v1 successfully", "", "", "todo-002")
 	writeEntries(t, dir, today(), []entry.Entry{todo, ach})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestScanOpenItems_abandonedTodo(t *testing.T) {
 	mutation := makeEntry("todo-003-v2", "todo", "refactor auth", "abandoned", "todo-003", "")
 	writeEntries(t, dir, today(), []entry.Entry{orig, mutation})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestScanOpenItems_resolvedBlocker(t *testing.T) {
 	mutation := makeEntry("blk-002-v2", "blocker", "third-party API down", "resolved", "blk-002", "")
 	writeEntries(t, dir, today(), []entry.Entry{orig, mutation})
 
-	_, blockers, err := ScanOpenItems(dir, 30)
+	_, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestScanOpenItems_reopenAfterClose(t *testing.T) {
 	reopened := makeEntry("todo-004-v3", "todo", "write docs", "open", "todo-004-v2", "")
 	writeEntries(t, dir, today(), []entry.Entry{orig, closed, reopened})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestScanOpenItems_multiStepChain(t *testing.T) {
 	c := makeEntry("todo-C", "todo", "second mutation (reopen)", "open", "todo-B", "")
 	writeEntries(t, dir, today(), []entry.Entry{a, b, c})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestScanOpenItems_missingFiles(t *testing.T) {
 	e := makeEntry("todo-005", "todo", "something", "open", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{e})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems should not error on missing files: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestScanOpenItems_missingFiles(t *testing.T) {
 // dataDir has no entries at all.
 func TestScanOpenItems_emptyDir(t *testing.T) {
 	dir := t.TempDir()
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestScanOpenItems_respectsScanDays(t *testing.T) {
 	writeEntries(t, dir, today(), []entry.Entry{recent})
 
 	// Scan only 3 days back — should miss the 5-day-old entry.
-	todos, _, err := ScanOpenItems(dir, 3)
+	todos, _, err := ScanOpenItems(dir, 3, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -297,7 +297,7 @@ func TestScanOpenItems_ageDays(t *testing.T) {
 	e := makeEntryWithTime("todo-aged", "todo", "old task", "open", "", "", threeDaysAgo)
 	writeEntries(t, dir, threeDaysAgo, []entry.Entry{e})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestScanOpenItems_nonStatusEntriesIgnored(t *testing.T) {
 	idea := makeEntry("idea-x", "idea", "new feature", "", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{ach, lrn, idea})
 
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -346,7 +346,7 @@ func TestScanOpenItems_multipleItemsMixed(t *testing.T) {
 
 	writeEntries(t, dir, today(), []entry.Entry{t1, t2, t3, t3mut, b1, t4, ach})
 
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -381,7 +381,7 @@ func TestScanOpenItems_entriesAcrossMultipleDays(t *testing.T) {
 	writeEntries(t, dir, day2, []entry.Entry{e2})
 	writeEntries(t, dir, day3, []entry.Entry{e3})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -398,7 +398,7 @@ func TestScanOpenItems_todoWithNoStatus(t *testing.T) {
 	e := makeEntry("todo-nostatus", "todo", "no status set", "", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{e})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -413,7 +413,7 @@ func TestScanOpenItems_defaultScanDays(t *testing.T) {
 	e := makeEntry("todo-def", "todo", "default scan", "open", "", "")
 	writeEntries(t, dir, today(), []entry.Entry{e})
 
-	todos, _, err := ScanOpenItems(dir, 0) // 0 should default to 30
+	todos, _, err := ScanOpenItems(dir, 0, today(), time.UTC, 0) // 0 should default to 30
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -435,7 +435,7 @@ func TestScanOpenItems_originalEntryPreserved(t *testing.T) {
 
 	writeEntries(t, dir, today(), []entry.Entry{orig, mutation})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -465,7 +465,7 @@ func TestScanOpenItems_emptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	todos, blockers, err := ScanOpenItems(dir, 30)
+	todos, blockers, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("unexpected error for empty file: %v", err)
 	}
@@ -488,7 +488,7 @@ func TestScanOpenItems_chainAcrossDays(t *testing.T) {
 	writeEntries(t, dir, day1, []entry.Entry{orig})
 	writeEntries(t, dir, day2, []entry.Entry{mutation})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}
@@ -513,7 +513,7 @@ func TestScanOpenItems_reopenedCrossDay(t *testing.T) {
 	writeEntries(t, dir, day2, []entry.Entry{closed})
 	writeEntries(t, dir, day3, []entry.Entry{reopened})
 
-	todos, _, err := ScanOpenItems(dir, 30)
+	todos, _, err := ScanOpenItems(dir, 30, today(), time.UTC, 0)
 	if err != nil {
 		t.Fatalf("ScanOpenItems: %v", err)
 	}

@@ -25,7 +25,8 @@ func GenerateReview(dataDir string, date time.Time, cfg config.Config) (string, 
 	}
 
 	// Scan open items from dataDir.
-	todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays)
+	loc := cfg.Location()
+	todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays, date, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return "", fmt.Errorf("scan open items: %w", err)
 	}
@@ -141,7 +142,8 @@ func buildMarkdown(date time.Time, entries []entry.Entry, todos []scanner.OpenIt
 	if len(todos) > 0 || len(blockers) > 0 {
 		b.WriteString("\n## Open Items\n")
 
-		today := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+		today := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		loc := cfg.Location()
 		staleDays := cfg.UI.StaleTriageDays
 
 		// Sort todos: priority order (tomorrow < this-week < someday) then timestamp.
@@ -158,7 +160,7 @@ func buildMarkdown(date time.Time, entries []entry.Entry, todos []scanner.OpenIt
 
 		for _, item := range sortedTodos {
 			e := item.Entry
-			_, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+			_, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, cfg.UI.DayStartHour)
 			priority := e.Priority
 			if priority == "" {
 				priority = "someday"
