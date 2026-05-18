@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/spf13/cobra"
 )
@@ -32,8 +34,12 @@ func newRecentCmd() *cobra.Command {
 				return fmt.Errorf("invalid type %q: must be one of %s", typeFilter, strings.Join(types, ", "))
 			}
 
-			now := time.Now().UTC()
-			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+			cfg, err := config.LoadConfig()
+			if err != nil {
+				return fmt.Errorf("load config: %w", err)
+			}
+			loc := cfg.Location()
+			today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
 			from := today.AddDate(0, 0, -(days - 1))
 
 			entries, err := entry.ReadEntriesRange(from, today)
@@ -55,7 +61,7 @@ func newRecentCmd() *cobra.Command {
 			if jsonOutput {
 				return runRecentJSON(cmd, entries)
 			}
-			return runRecentHuman(cmd, entries, days)
+			return runRecentHuman(cmd, entries, days, loc, cfg.UI.DayStartHour)
 		},
 	}
 
@@ -67,7 +73,7 @@ func newRecentCmd() *cobra.Command {
 
 // runRecentHuman prints entries grouped by date (most recent first) then by
 // type within each date in human-readable form.
-func runRecentHuman(cmd *cobra.Command, entries []entry.Entry, days int) error {
+func runRecentHuman(cmd *cobra.Command, entries []entry.Entry, days int, loc *time.Location, dayStartHour int) error {
 	out := cmd.OutOrStdout()
 
 	if len(entries) == 0 {
@@ -78,7 +84,7 @@ func runRecentHuman(cmd *cobra.Command, entries []entry.Entry, days int) error {
 	// Group entries by date string (YYYY-MM-DD).
 	byDate := make(map[string][]entry.Entry)
 	for _, e := range entries {
-		date := dateKey(e.Timestamp)
+		date := dateKey(e.Timestamp, loc, dayStartHour)
 		byDate[date] = append(byDate[date], e)
 	}
 
@@ -152,9 +158,9 @@ func runRecentJSON(cmd *cobra.Command, entries []entry.Entry) error {
 	return enc.Encode(sorted)
 }
 
-// dateKey extracts the YYYY-MM-DD date string from an RFC3339 timestamp.
+// dateKey extracts the logical YYYY-MM-DD date string from an RFC3339 timestamp.
 // If parsing fails, it returns the first 10 characters as a best-effort fallback.
-func dateKey(ts string) string {
+func dateKey(ts string, loc *time.Location, dayStartHour int) string {
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
 		if len(ts) >= 10 {
@@ -162,5 +168,5 @@ func dateKey(ts string) string {
 		}
 		return ts
 	}
-	return t.UTC().Format("2006-01-02")
+	return dayutil.LogicalDayStr(t, loc, dayStartHour)
 }

@@ -17,9 +17,14 @@ import (
 
 // runRecent executes newRecentCmd() with the given arguments using the provided
 // dataDir as XDG_DATA_HOME so all file I/O goes to a temp directory.
+// A config with UTC timezone and day_start_hour=0 is written so tests use
+// consistent time boundaries regardless of the machine's local timezone.
 // Returns stdout output and any error.
 func runRecent(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
+	cfgDir := t.TempDir()
+	writeTestConfig(t, cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	cmd := newRecentCmd()
@@ -548,7 +553,7 @@ func TestDateKey(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		got := dateKey(tc.input)
+		got := dateKey(tc.input, time.UTC, 0)
 		if got != tc.want {
 			t.Errorf("dateKey(%q) = %q, want %q", tc.input, got, tc.want)
 		}

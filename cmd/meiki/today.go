@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +33,12 @@ func newTodayCmd() *cobra.Command {
 		Long:         "Show all entries captured today, grouped by type.",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			today := time.Now().UTC()
+			cfg, err := config.LoadConfig()
+			if err != nil {
+				return fmt.Errorf("load config: %w", err)
+			}
+			loc := cfg.Location()
+			today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
 			entries, err := entry.ReadEntries(today)
 			if err != nil {
 				return fmt.Errorf("read today's entries: %w", err)

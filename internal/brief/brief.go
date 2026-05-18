@@ -63,14 +63,13 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
 
 	// --- Debounce check ---
-	now := time.Now()
 	if state.LastBriefTS != "" {
 		lastBrief, err := time.Parse(time.RFC3339, state.LastBriefTS)
 		if err == nil {
 			lastBriefDay := dayutil.LogicalDay(lastBrief, loc, cfg.UI.DayStartHour)
 			if lastBriefDay.Equal(today) {
 				// Brief already produced today. Check for new entries since last_brief_ts.
-				hasNew, err := hasNewEntriesSince(dataDir, now, lastBrief)
+				hasNew, err := hasNewEntriesSince(dataDir, today, lastBrief)
 				if err != nil {
 					return nil, fmt.Errorf("check new entries: %w", err)
 				}
@@ -192,11 +191,8 @@ func GenerateBriefing(dataDir string, cfg config.Config, state config.State) (*B
 
 // hasNewEntriesSince returns true if today's JSONL file contains any entry
 // with a timestamp strictly after lastBrief.
-func hasNewEntriesSince(dataDir string, now time.Time, lastBrief time.Time) (bool, error) {
-	y := now.Format("2006")
-	m := now.Format("01")
-	d := now.Format("2006-01-02")
-	path := filepath.Join(dataDir, "entries", y, m, d+".jsonl")
+func hasNewEntriesSince(dataDir string, logicalDay time.Time, lastBrief time.Time) (bool, error) {
+	path := entry.EntryFilePath(logicalDay)
 
 	entries, err := entry.ReadEntriesFromPath(path)
 	if err != nil {

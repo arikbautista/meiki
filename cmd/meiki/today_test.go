@@ -33,9 +33,14 @@ func writeTestConfig(t *testing.T, cfgDir string) {
 
 // runToday executes newTodayCmd() with the given arguments using the provided
 // dataDir as XDG_DATA_HOME so all file I/O goes to a temp directory.
+// A config with UTC timezone and day_start_hour=0 is written so tests use
+// consistent time boundaries regardless of the machine's local timezone.
 // Returns stdout output and any error.
 func runToday(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
+	cfgDir := t.TempDir()
+	writeTestConfig(t, cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	cmd := newTodayCmd()

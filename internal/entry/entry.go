@@ -296,9 +296,10 @@ func ReadEntries(date time.Time) ([]Entry, error) {
 // Dates are compared at day granularity.
 func ReadEntriesRange(from, to time.Time) ([]Entry, error) {
 	var result []Entry
-	// Normalise to start of each day.
-	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
-	end := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, time.UTC)
+	// Normalise to start of each day, preserving the caller's location.
+	loc := from.Location()
+	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
+	end := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, loc)
 	for !cur.After(end) {
 		entries, err := ReadEntries(cur)
 		if err != nil {
