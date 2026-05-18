@@ -4,12 +4,27 @@ Work memory for AI CLI sessions. Captures achievements, learnings, blockers, tod
 
 ## Install
 
+Requires Go 1.22+.
+
 ```bash
-# From source
+# From source (installs to $(go env GOPATH)/bin)
 go install github.com/arikbautista/meiki/cmd/meiki@latest
 
-# Or build locally
+# Or build locally (produces ./meiki in repo root)
 make build
+```
+
+After `go install`, ensure `$(go env GOPATH)/bin` is in your PATH:
+
+```bash
+# Add to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+Alternatively, symlink into a directory already on your PATH:
+
+```bash
+ln -sf "$(go env GOPATH)/bin/meiki" ~/.local/bin/meiki
 ```
 
 ## Quick Start
