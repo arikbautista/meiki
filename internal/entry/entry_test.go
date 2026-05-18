@@ -470,6 +470,23 @@ func TestConcurrentWrites(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// setEnv helper
+// ---------------------------------------------------------------------------
+
+func setEnv(t *testing.T, key, value string) {
+	t.Helper()
+	original, wasSet := os.LookupEnv(key)
+	os.Setenv(key, value)
+	t.Cleanup(func() {
+		if wasSet {
+			os.Setenv(key, original)
+		} else {
+			os.Unsetenv(key)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
 // AppendEntry one line per write
 // ---------------------------------------------------------------------------
 
@@ -492,5 +509,52 @@ func TestAppendEntry_oneLinePerWrite(t *testing.T) {
 		if !json.Valid([]byte(line)) {
 			t.Errorf("line %d is not valid JSON: %q", i, line)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// AppendEntryAt logical day placement
+// ---------------------------------------------------------------------------
+
+func TestAppendEntry_UsesLogicalDay(t *testing.T) {
+	dataDir := t.TempDir()
+	setEnv(t, "XDG_DATA_HOME", dataDir)
+
+	configDir := t.TempDir()
+	setEnv(t, "XDG_CONFIG_HOME", configDir)
+	meikiDir := filepath.Join(configDir, "meiki")
+	os.MkdirAll(meikiDir, 0o755)
+	os.WriteFile(filepath.Join(meikiDir, "config.toml"), []byte(`
+[ui]
+timezone = "America/New_York"
+day_start_hour = 5
+`), 0o644)
+
+	ny, _ := time.LoadLocation("America/New_York")
+	ts := time.Date(2026, 5, 18, 2, 0, 0, 0, ny)
+
+	e := &Entry{
+		ID:        NewID(),
+		Timestamp: ts.UTC().Format(time.RFC3339),
+		Type:      "todo",
+		Content:   "late night task",
+		Status:    "open",
+		Priority:  "tomorrow",
+	}
+
+	_, err := AppendEntryAt(e, ts)
+	if err != nil {
+		t.Fatalf("AppendEntryAt() error = %v", err)
+	}
+
+	base := filepath.Join(dataDir, "meiki")
+	expectedPath := filepath.Join(base, "entries", "2026", "05", "2026-05-17.jsonl")
+	unexpectedPath := filepath.Join(base, "entries", "2026", "05", "2026-05-18.jsonl")
+
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Errorf("expected file %s to exist", expectedPath)
+	}
+	if _, err := os.Stat(unexpectedPath); !os.IsNotExist(err) {
+		t.Errorf("did not expect file %s to exist", unexpectedPath)
 	}
 }

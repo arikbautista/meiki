@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -218,10 +219,23 @@ func EntryFilePath(date time.Time) string {
 }
 
 // AppendEntry marshals e to JSON and atomically appends it to the daily JSONL file.
-// It creates intermediate year/month directories as needed.
-// Returns the entry's ID.
+// The file is named by the logical local day (respecting timezone and day_start_hour
+// from config).
 func AppendEntry(e *Entry) (string, error) {
-	path := EntryFilePath(time.Now().UTC())
+	return AppendEntryAt(e, time.Now())
+}
+
+// AppendEntryAt is like AppendEntry but uses the given time to determine the
+// logical day for file placement.
+func AppendEntryAt(e *Entry, now time.Time) (string, error) {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return "", fmt.Errorf("load config: %w", err)
+	}
+	loc := cfg.Location()
+	logicalDay := dayutil.LogicalDay(now, loc, cfg.UI.DayStartHour)
+	path := EntryFilePath(logicalDay)
+
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", fmt.Errorf("create entry directory: %w", err)
 	}
@@ -238,7 +252,6 @@ func AppendEntry(e *Entry) (string, error) {
 	}
 	defer f.Close()
 
-	// Single Write call keeps the write within PIPE_BUF for atomicity.
 	if _, err := f.Write(line); err != nil {
 		return "", fmt.Errorf("write entry: %w", err)
 	}
