@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // setEnv sets an environment variable and returns a cleanup function that
@@ -236,6 +237,114 @@ func TestEnsureDataDir_Idempotent(t *testing.T) {
 	}
 	if err := EnsureDataDir(); err != nil {
 		t.Fatalf("second EnsureDataDir() error = %v", err)
+	}
+}
+
+func TestLoadConfig_Defaults_Timezone_And_DayStartHour(t *testing.T) {
+	setupConfigDir(t, "")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+
+	if cfg.UI.Timezone != "" {
+		t.Errorf("Timezone = %q, want empty string", cfg.UI.Timezone)
+	}
+	if cfg.UI.DayStartHour != 5 {
+		t.Errorf("DayStartHour = %d, want 5", cfg.UI.DayStartHour)
+	}
+}
+
+func TestLoadConfig_TimezoneAndDayStartHour(t *testing.T) {
+	setupConfigDir(t, `
+[ui]
+timezone = "America/New_York"
+day_start_hour = 4
+`)
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+
+	if cfg.UI.Timezone != "America/New_York" {
+		t.Errorf("Timezone = %q, want %q", cfg.UI.Timezone, "America/New_York")
+	}
+	if cfg.UI.DayStartHour != 4 {
+		t.Errorf("DayStartHour = %d, want 4", cfg.UI.DayStartHour)
+	}
+}
+
+func TestLoadConfig_InvalidTimezone(t *testing.T) {
+	setupConfigDir(t, `
+[ui]
+timezone = "Not/A/Real/Zone"
+`)
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Error("LoadConfig() error = nil, want error for invalid timezone")
+	}
+}
+
+func TestLoadConfig_DayStartHour_OutOfRange(t *testing.T) {
+	setupConfigDir(t, `
+[ui]
+day_start_hour = 25
+`)
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Error("LoadConfig() error = nil, want error for day_start_hour > 23")
+	}
+}
+
+func TestLoadConfig_DayStartHour_Negative(t *testing.T) {
+	setupConfigDir(t, `
+[ui]
+day_start_hour = -1
+`)
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Error("LoadConfig() error = nil, want error for negative day_start_hour")
+	}
+}
+
+func TestLoadConfig_DayStartHour_Zero_IsValid(t *testing.T) {
+	setupConfigDir(t, `
+[ui]
+day_start_hour = 0
+`)
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	if cfg.UI.DayStartHour != 0 {
+		t.Errorf("DayStartHour = %d, want 0", cfg.UI.DayStartHour)
+	}
+}
+
+func TestLocation_EmptyTimezone_ReturnsLocal(t *testing.T) {
+	cfg := defaults()
+	cfg.UI.Timezone = ""
+
+	loc := cfg.Location()
+	if loc != time.Local {
+		t.Errorf("Location() = %v, want time.Local", loc)
+	}
+}
+
+func TestLocation_ValidTimezone(t *testing.T) {
+	cfg := defaults()
+	cfg.UI.Timezone = "Asia/Tokyo"
+
+	loc := cfg.Location()
+	want, _ := time.LoadLocation("Asia/Tokyo")
+	if loc.String() != want.String() {
+		t.Errorf("Location() = %v, want %v", loc, want)
 	}
 }
 
