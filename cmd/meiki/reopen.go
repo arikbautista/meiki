@@ -100,8 +100,8 @@ func findEntryForReopen(id string) (orig entry.Entry, latestID string, err error
 
 	// Read all entries to locate the target and build the supersedes chain.
 	all, readErr := entry.ReadEntriesRange(
-		time.Now().UTC().AddDate(-1, 0, 0),
-		time.Now().UTC(),
+		today.AddDate(-1, 0, 0),
+		today,
 	)
 	if readErr != nil {
 		return entry.Entry{}, "", fmt.Errorf("cannot read entries: %w", readErr)

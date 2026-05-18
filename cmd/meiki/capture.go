@@ -187,8 +187,8 @@ func validateCloses(id string) error {
 	// Not found in open todos — check if it exists at all via a broader read.
 	// If it doesn't exist in open items it is either non-existent or not an open todo.
 	all, readErr := entry.ReadEntriesRange(
-		time.Now().UTC().AddDate(-1, 0, 0), // up to 1 year back
-		time.Now().UTC(),
+		today.AddDate(-1, 0, 0),
+		today,
 	)
 	if readErr != nil {
 		return fmt.Errorf("cannot read entries: %w", readErr)

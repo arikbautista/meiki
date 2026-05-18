@@ -93,8 +93,8 @@ func findEntryForAbandon(id string) (entry.Entry, error) {
 
 	// Not in open todos — search the full history to produce a helpful error.
 	all, readErr := entry.ReadEntriesRange(
-		time.Now().UTC().AddDate(-1, 0, 0),
-		time.Now().UTC(),
+		today.AddDate(-1, 0, 0),
+		today,
 	)
 	if readErr != nil {
 		return entry.Entry{}, fmt.Errorf("cannot read entries: %w", readErr)
