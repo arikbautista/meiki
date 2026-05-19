@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/arikbautista/meiki/internal/scanner"
 	"github.com/spf13/cobra"
@@ -164,8 +165,15 @@ func parseTags(raw string) []string {
 func validateCloses(id string) error {
 	dataDir := config.DataDir()
 
+	cfg, cfgErr := config.LoadConfig()
+	if cfgErr != nil {
+		return fmt.Errorf("load config: %w", cfgErr)
+	}
+	loc := cfg.Location()
+	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
+
 	// Use a generous scan window (90 days) so we find older todos.
-	todos, _, err := scanner.ScanOpenItems(dataDir, 90)
+	todos, _, err := scanner.ScanOpenItems(dataDir, 90, today, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return fmt.Errorf("cannot scan open items: %w", err)
 	}
@@ -179,8 +187,8 @@ func validateCloses(id string) error {
 	// Not found in open todos — check if it exists at all via a broader read.
 	// If it doesn't exist in open items it is either non-existent or not an open todo.
 	all, readErr := entry.ReadEntriesRange(
-		time.Now().UTC().AddDate(-1, 0, 0), // up to 1 year back
-		time.Now().UTC(),
+		today.AddDate(-1, 0, 0),
+		today,
 	)
 	if readErr != nil {
 		return fmt.Errorf("cannot read entries: %w", readErr)

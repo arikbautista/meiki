@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 )
 
@@ -30,8 +31,9 @@ func entryFilePath(dataDir string, date time.Time) string {
 // from an explicit dataDir, skipping missing files silently.
 func readRange(dataDir string, from, to time.Time) ([]entry.Entry, error) {
 	var result []entry.Entry
-	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
-	end := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, time.UTC)
+	loc := from.Location()
+	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
+	end := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, loc)
 	for !cur.After(end) {
 		path := entryFilePath(dataDir, cur)
 		entries, err := entry.ReadEntriesFromPath(path)
@@ -54,14 +56,13 @@ func readRange(dataDir string, from, to time.Time) ([]entry.Entry, error) {
 //  4. Build closedByAchievement set from achievement entries with closes field.
 //  5. An item is open if its terminal-state entry has status "open" and is not
 //     in closedByAchievement.
-func ScanOpenItems(dataDir string, scanDays int) (todos []OpenItem, blockers []OpenItem, err error) {
+func ScanOpenItems(dataDir string, scanDays int, today time.Time, loc *time.Location, dayStartHour int) (todos []OpenItem, blockers []OpenItem, err error) {
 	if scanDays <= 0 {
 		scanDays = 30
 	}
 
-	now := time.Now().UTC()
-	from := now.AddDate(0, 0, -(scanDays - 1))
-	to := now
+	from := today.AddDate(0, 0, -(scanDays - 1))
+	to := today
 
 	entries, err := readRange(dataDir, from, to)
 	if err != nil {
@@ -144,8 +145,6 @@ func ScanOpenItems(dataDir string, scanDays int) (todos []OpenItem, blockers []O
 		}
 	}
 
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-
 	// Build the open item lists.
 	for id, orig := range originals {
 		// Determine the terminal state for this item.
@@ -169,7 +168,7 @@ func ScanOpenItems(dataDir string, scanDays int) (todos []OpenItem, blockers []O
 		var ageDays int
 		ts, parseErr := time.Parse(time.RFC3339, orig.Timestamp)
 		if parseErr == nil {
-			origDay := time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC)
+			origDay := dayutil.LogicalDay(ts, loc, dayStartHour)
 			ageDays = int(today.Sub(origDay).Hours() / 24)
 			if ageDays < 0 {
 				ageDays = 0

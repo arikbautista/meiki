@@ -2,17 +2,21 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 // UIConfig holds user-interface tuning knobs.
 type UIConfig struct {
-	BriefMaxOpenTodos int `toml:"brief_max_open_todos"`
-	OpenScanDays      int `toml:"open_scan_days"`
-	StaleTriageDays   int `toml:"stale_triage_days"`
+	BriefMaxOpenTodos int    `toml:"brief_max_open_todos"`
+	OpenScanDays      int    `toml:"open_scan_days"`
+	StaleTriageDays   int    `toml:"stale_triage_days"`
+	Timezone          string `toml:"timezone"`
+	DayStartHour      int    `toml:"day_start_hour"`
 }
 
 // Config is the top-level configuration structure parsed from config.toml.
@@ -27,8 +31,23 @@ func defaults() Config {
 			BriefMaxOpenTodos: 20,
 			OpenScanDays:      30,
 			StaleTriageDays:   3,
+			Timezone:          "",
+			DayStartHour:      5,
 		},
 	}
+}
+
+// Location returns the *time.Location for the configured timezone.
+// If Timezone is empty, time.Local is returned.
+func (c *Config) Location() *time.Location {
+	if c.UI.Timezone == "" {
+		return time.Local
+	}
+	loc, err := time.LoadLocation(c.UI.Timezone)
+	if err != nil {
+		return time.Local
+	}
+	return loc
 }
 
 // ConfigDir returns the meiki configuration directory.
@@ -71,9 +90,11 @@ func LoadConfig() (Config, error) {
 	// Decode into a temporary struct so only present keys are overridden.
 	var partial struct {
 		UI struct {
-			BriefMaxOpenTodos *int `toml:"brief_max_open_todos"`
-			OpenScanDays      *int `toml:"open_scan_days"`
-			StaleTriageDays   *int `toml:"stale_triage_days"`
+			BriefMaxOpenTodos *int    `toml:"brief_max_open_todos"`
+			OpenScanDays      *int    `toml:"open_scan_days"`
+			StaleTriageDays   *int    `toml:"stale_triage_days"`
+			Timezone          *string `toml:"timezone"`
+			DayStartHour      *int    `toml:"day_start_hour"`
 		} `toml:"ui"`
 	}
 
@@ -89,6 +110,21 @@ func LoadConfig() (Config, error) {
 	}
 	if partial.UI.StaleTriageDays != nil {
 		cfg.UI.StaleTriageDays = *partial.UI.StaleTriageDays
+	}
+	if partial.UI.Timezone != nil {
+		cfg.UI.Timezone = *partial.UI.Timezone
+	}
+	if partial.UI.DayStartHour != nil {
+		cfg.UI.DayStartHour = *partial.UI.DayStartHour
+	}
+
+	if cfg.UI.Timezone != "" {
+		if _, err := time.LoadLocation(cfg.UI.Timezone); err != nil {
+			return cfg, fmt.Errorf("invalid timezone %q: %w", cfg.UI.Timezone, err)
+		}
+	}
+	if cfg.UI.DayStartHour < 0 || cfg.UI.DayStartHour > 23 {
+		return cfg, fmt.Errorf("day_start_hour must be 0-23, got %d", cfg.UI.DayStartHour)
 	}
 
 	return cfg, nil

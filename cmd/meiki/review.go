@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/review"
 	"github.com/spf13/cobra"
 )
@@ -32,16 +33,17 @@ current data (idempotent).`,
 			}
 
 			dataDir := config.DataDir()
-			now := time.Now().UTC()
+			loc := cfg.Location()
+			today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
 
 			// Generate the review markdown.
-			md, err := review.GenerateReview(dataDir, now, cfg)
+			md, err := review.GenerateReview(dataDir, today, cfg)
 			if err != nil {
 				return fmt.Errorf("generate review: %w", err)
 			}
 
 			// Determine the output path and create intermediate directories.
-			reviewPath := review.ReviewFilePath(dataDir, now)
+			reviewPath := review.ReviewFilePath(dataDir, today)
 			if err := os.MkdirAll(filepath.Dir(reviewPath), 0o755); err != nil {
 				return fmt.Errorf("create review directory: %w", err)
 			}
@@ -51,8 +53,8 @@ current data (idempotent).`,
 				return fmt.Errorf("write review file: %w", err)
 			}
 
-			// Update last_review_ts in state.json.
-			if err := config.UpdateReviewTS(now); err != nil {
+			// Update last_review_ts in state.json (keep UTC for precise timestamp).
+			if err := config.UpdateReviewTS(time.Now().UTC()); err != nil {
 				return fmt.Errorf("update review timestamp: %w", err)
 			}
 

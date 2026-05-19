@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,15 +12,35 @@ import (
 	"github.com/arikbautista/meiki/internal/entry"
 )
 
+// writeTestConfig writes a config.toml with UTC timezone and day_start_hour=0
+// to the given cfgDir so tests use consistent time boundaries regardless of
+// the machine's local timezone.
+func writeTestConfig(t *testing.T, cfgDir string) {
+	t.Helper()
+	meikiCfgDir := filepath.Join(cfgDir, "meiki")
+	if err := os.MkdirAll(meikiCfgDir, 0o755); err != nil {
+		t.Fatalf("writeTestConfig: mkdir: %v", err)
+	}
+	cfgContent := "[ui]\ntimezone = \"UTC\"\nday_start_hour = 0\n"
+	if err := os.WriteFile(filepath.Join(meikiCfgDir, "config.toml"), []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("writeTestConfig: write: %v", err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 // runToday executes newTodayCmd() with the given arguments using the provided
 // dataDir as XDG_DATA_HOME so all file I/O goes to a temp directory.
+// A config with UTC timezone and day_start_hour=0 is written so tests use
+// consistent time boundaries regardless of the machine's local timezone.
 // Returns stdout output and any error.
 func runToday(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
+	cfgDir := t.TempDir()
+	writeTestConfig(t, cfgDir)
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	cmd := newTodayCmd()

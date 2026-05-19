@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
 	"github.com/arikbautista/meiki/internal/entry"
@@ -16,6 +17,9 @@ import (
 func runResolve(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("XDG_DATA_HOME", dataDir)
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	writeTestConfig(t, cfgDir)
 
 	cmd := newResolveCmd()
 	var out bytes.Buffer
@@ -137,7 +141,7 @@ func TestResolve_blockerNoLongerAppearsInOpenList(t *testing.T) {
 		t.Fatalf("resolve failed: %v", err)
 	}
 
-	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -267,7 +271,7 @@ func TestResolve_nonBlockerNotInOpenBlockers(t *testing.T) {
 	}
 
 	// ScanOpenItems should return the todo in todos, not blockers.
-	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -304,7 +308,7 @@ func TestResolve_alreadyResolvedNotInOpenList(t *testing.T) {
 	}
 
 	// After resolving, the blocker should no longer be in open blockers.
-	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}

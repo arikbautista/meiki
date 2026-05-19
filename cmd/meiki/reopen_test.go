@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
 	"github.com/arikbautista/meiki/internal/scanner"
@@ -15,6 +16,9 @@ import (
 func runReopen(t *testing.T, dataDir string, args ...string) (string, error) {
 	t.Helper()
 	t.Setenv("XDG_DATA_HOME", dataDir)
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+	writeTestConfig(t, cfgDir)
 
 	cmd := newReopenCmd()
 	var out bytes.Buffer
@@ -56,7 +60,7 @@ func TestReopen_abandonedTodoAppearsInOpenList(t *testing.T) {
 	}
 
 	// Abandoned todo should now appear in the open list.
-	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, _, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -93,7 +97,7 @@ func TestReopen_resolvedBlockerAppearsInOpenList(t *testing.T) {
 	}
 
 	// Resolved blocker should now appear in the open list.
-	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -293,7 +297,7 @@ func TestReopen_alreadyOpenBlockerNotReopened(t *testing.T) {
 
 	blockerID := captureOpenBlocker(t, dataDir, "open blocker")
 
-	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	_, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}
@@ -320,7 +324,7 @@ func TestReopen_learningTypeNotInOpenLists(t *testing.T) {
 		t.Fatalf("capture learning: %v", err)
 	}
 
-	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30)
+	todos, blockers, scanErr := scanner.ScanOpenItems(config.DataDir(), 30, todayMidnightUTC(), time.UTC, 0)
 	if scanErr != nil {
 		t.Fatalf("ScanOpenItems: %v", scanErr)
 	}

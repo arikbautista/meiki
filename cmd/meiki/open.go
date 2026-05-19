@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/scanner"
 	"github.com/spf13/cobra"
 )
@@ -65,20 +66,20 @@ func newOpenCmd() *cobra.Command {
 			}
 
 			dataDir := config.DataDir()
-			todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays)
+			loc := cfg.Location()
+			today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
+
+			todos, blockers, err := scanner.ScanOpenItems(dataDir, cfg.UI.OpenScanDays, today, loc, cfg.UI.DayStartHour)
 			if err != nil {
 				return fmt.Errorf("scan open items: %w", err)
 			}
 
-			today := time.Now().UTC()
-			today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
-
 			staleDays := cfg.UI.StaleTriageDays
 
 			if jsonOutput {
-				return runOpenJSON(cmd, todos, blockers, today, staleDays)
+				return runOpenJSON(cmd, todos, blockers, today, staleDays, loc, cfg.UI.DayStartHour)
 			}
-			return runOpenHuman(cmd, todos, blockers, today, staleDays)
+			return runOpenHuman(cmd, todos, blockers, today, staleDays, loc, cfg.UI.DayStartHour)
 		},
 	}
 
@@ -101,7 +102,7 @@ func sortTodos(todos []scanner.OpenItem) {
 }
 
 // runOpenHuman prints the human-readable open-item listing.
-func runOpenHuman(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today time.Time, staleDays int) error {
+func runOpenHuman(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today time.Time, staleDays int, loc *time.Location, dayStartHour int) error {
 	out := cmd.OutOrStdout()
 
 	if len(todos) == 0 && len(blockers) == 0 {
@@ -114,7 +115,7 @@ func runOpenHuman(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today 
 	if len(todos) > 0 {
 		fmt.Fprintf(out, "Open Todos (%d):\n", len(todos))
 		for _, item := range todos {
-			_, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+			_, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, dayStartHour)
 			e := item.Entry
 			trunc := truncateID(e.ID)
 			project := e.Project
@@ -148,13 +149,13 @@ func runOpenHuman(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today 
 }
 
 // runOpenJSON prints the JSON-array representation of all open items.
-func runOpenJSON(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today time.Time, staleDays int) error {
+func runOpenJSON(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today time.Time, staleDays int, loc *time.Location, dayStartHour int) error {
 	out := cmd.OutOrStdout()
 
 	var items []openJSONItem
 
 	for _, item := range todos {
-		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, dayStartHour)
 		items = append(items, openJSONItem{
 			ID:          item.Entry.ID,
 			Type:        "todo",
@@ -168,7 +169,7 @@ func runOpenJSON(cmd *cobra.Command, todos, blockers []scanner.OpenItem, today t
 	}
 
 	for _, item := range blockers {
-		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays)
+		triage, overdueDays := scanner.ClassifyItem(item, today, staleDays, loc, dayStartHour)
 		items = append(items, openJSONItem{
 			ID:          item.Entry.ID,
 			Type:        "blocker",

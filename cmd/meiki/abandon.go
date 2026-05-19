@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/arikbautista/meiki/internal/config"
+	"github.com/arikbautista/meiki/internal/dayutil"
 	"github.com/arikbautista/meiki/internal/entry"
 	"github.com/arikbautista/meiki/internal/scanner"
 	"github.com/spf13/cobra"
@@ -72,8 +73,15 @@ Example:
 func findEntryForAbandon(id string) (entry.Entry, error) {
 	dataDir := config.DataDir()
 
+	cfg, cfgErr := config.LoadConfig()
+	if cfgErr != nil {
+		return entry.Entry{}, fmt.Errorf("load config: %w", cfgErr)
+	}
+	loc := cfg.Location()
+	today := dayutil.LogicalDay(time.Now(), loc, cfg.UI.DayStartHour)
+
 	// First check open todos — the common and fast path.
-	todos, _, err := scanner.ScanOpenItems(dataDir, 90)
+	todos, _, err := scanner.ScanOpenItems(dataDir, 90, today, loc, cfg.UI.DayStartHour)
 	if err != nil {
 		return entry.Entry{}, fmt.Errorf("cannot scan open items: %w", err)
 	}
@@ -85,8 +93,8 @@ func findEntryForAbandon(id string) (entry.Entry, error) {
 
 	// Not in open todos — search the full history to produce a helpful error.
 	all, readErr := entry.ReadEntriesRange(
-		time.Now().UTC().AddDate(-1, 0, 0),
-		time.Now().UTC(),
+		today.AddDate(-1, 0, 0),
+		today,
 	)
 	if readErr != nil {
 		return entry.Entry{}, fmt.Errorf("cannot read entries: %w", readErr)

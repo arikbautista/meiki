@@ -45,7 +45,7 @@ func TestClassifyItem_TomorrowCapturedToday(t *testing.T) {
 	today := date(2026, 5, 16)
 	item := makeTriageItem("tomorrow", "", today)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal, got %v", triage)
 	}
@@ -60,7 +60,7 @@ func TestClassifyItem_TomorrowCapturedYesterday(t *testing.T) {
 	yesterday := date(2026, 5, 15)
 	item := makeTriageItem("tomorrow", "", yesterday)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue, got %v", triage)
 	}
@@ -75,7 +75,7 @@ func TestClassifyItem_TomorrowCapturedTwoDaysAgo(t *testing.T) {
 	capture := date(2026, 5, 14) // 2 days ago → 2 days overdue
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue, got %v", triage)
 	}
@@ -90,7 +90,7 @@ func TestClassifyItem_TomorrowStale(t *testing.T) {
 	capture := date(2026, 5, 13) // 3 days ago → 3 days overdue → stale
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale, got %v", triage)
 	}
@@ -107,7 +107,7 @@ func TestClassifyItem_TomorrowCapturedTodayBoundary(t *testing.T) {
 	capture := date(2026, 5, 16) // captured today
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal when captured today, got %v (days=%d)", triage, days)
 	}
@@ -128,7 +128,7 @@ func TestClassifyItem_ThisWeekCapturedMonday_NotOverdue(t *testing.T) {
 	today := date(2026, 5, 16)   // Saturday — still same week
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal (within week), got %v (days=%d)", triage, days)
 	}
@@ -144,7 +144,7 @@ func TestClassifyItem_ThisWeekCapturedMonday_OverdueFollowingMonday(t *testing.T
 	today := date(2026, 5, 18)   // following Monday
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue on following Monday, got %v (days=%d)", triage, days)
 	}
@@ -160,7 +160,7 @@ func TestClassifyItem_ThisWeekEndOfWeekBoundary(t *testing.T) {
 	today := date(2026, 5, 17)   // Sunday = end of week
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal on end-of-week day, got %v (days=%d)", triage, days)
 	}
@@ -177,7 +177,7 @@ func TestClassifyItem_ThisWeekCapturedSunday(t *testing.T) {
 	today := date(2026, 5, 11)   // Monday → 1 day past end-of-week
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue, got %v (days=%d)", triage, days)
 	}
@@ -192,7 +192,7 @@ func TestClassifyItem_ThisWeekStale(t *testing.T) {
 	today := date(2026, 5, 20)   // Wednesday — 3 days after end of week
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale, got %v (days=%d)", triage, days)
 	}
@@ -211,7 +211,7 @@ func TestClassifyItem_Someday(t *testing.T) {
 	today := date(2026, 5, 16)
 	item := makeTriageItem("someday", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal for someday, got %v (days=%d)", triage, days)
 	}
@@ -230,7 +230,7 @@ func TestClassifyItem_DueDate_NotOverdue(t *testing.T) {
 	capture := date(2026, 5, 1)
 	item := makeTriageItem("someday", "2026-05-16", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal when due == today, got %v (days=%d)", triage, days)
 	}
@@ -245,7 +245,7 @@ func TestClassifyItem_DueDate_OneDayOverdue(t *testing.T) {
 	capture := date(2026, 5, 1)
 	item := makeTriageItem("someday", "2026-05-10", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue, got %v (days=%d)", triage, days)
 	}
@@ -260,7 +260,7 @@ func TestClassifyItem_DueDate_Stale(t *testing.T) {
 	capture := date(2026, 5, 1)
 	item := makeTriageItem("someday", "2026-05-10", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale, got %v (days=%d)", triage, days)
 	}
@@ -277,7 +277,7 @@ func TestClassifyItem_DueDate_OverridesPriority(t *testing.T) {
 	// Explicit due = 2026-05-10 → 6 days overdue (due takes precedence over priority)
 	item := makeTriageItem("tomorrow", "2026-05-10", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale (due overrides priority), got %v (days=%d)", triage, days)
 	}
@@ -297,7 +297,7 @@ func TestClassifyItem_CustomStaleDays_FourDays(t *testing.T) {
 	capture := date(2026, 5, 12)
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 5)
+	triage, days := ClassifyItem(item, today, 5, time.UTC, 0)
 	if triage != TriageOverdue {
 		t.Errorf("expected TriageOverdue with staleDays=5 and 4 days overdue, got %v (days=%d)", triage, days)
 	}
@@ -313,7 +313,7 @@ func TestClassifyItem_CustomStaleDays_AtBoundary(t *testing.T) {
 	capture := date(2026, 5, 11)
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 5)
+	triage, days := ClassifyItem(item, today, 5, time.UTC, 0)
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale with staleDays=5 and 5 days overdue, got %v (days=%d)", triage, days)
 	}
@@ -329,7 +329,7 @@ func TestClassifyItem_CustomStaleDays_Default(t *testing.T) {
 	capture := date(2026, 5, 13)
 	item := makeTriageItem("tomorrow", "", capture)
 
-	triage, days := ClassifyItem(item, today, 0) // 0 → default 3
+	triage, days := ClassifyItem(item, today, 0, time.UTC, 0) // 0 → default 3
 	if triage != TriageStale {
 		t.Errorf("expected TriageStale with default staleDays, got %v (days=%d)", triage, days)
 	}
@@ -348,7 +348,7 @@ func TestClassifyItem_NoPriorityNoDue(t *testing.T) {
 	today := date(2026, 5, 16)
 	item := makeTriageItem("", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("expected TriageNormal for no priority/due, got %v (days=%d)", triage, days)
 	}
@@ -367,7 +367,7 @@ func TestAcceptanceCriteria_TomorrowCapturedYesterdayIs1DayOverdue(t *testing.T)
 	yesterday := date(2026, 5, 15)
 	item := makeTriageItem("tomorrow", "", yesterday)
 
-	_, days := ClassifyItem(item, today, 3)
+	_, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if days != 1 {
 		t.Errorf("acceptance: tomorrow captured yesterday should be 1 day overdue, got %d", days)
 	}
@@ -378,7 +378,7 @@ func TestAcceptanceCriteria_TomorrowCapturedTodayNotOverdue(t *testing.T) {
 	today := date(2026, 5, 16)
 	item := makeTriageItem("tomorrow", "", today)
 
-	triage, _ := ClassifyItem(item, today, 3)
+	triage, _ := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal {
 		t.Errorf("acceptance: tomorrow captured today should not be overdue, got %v", triage)
 	}
@@ -391,7 +391,7 @@ func TestAcceptanceCriteria_ThisWeekCapturedMondayOverdueFollowingMonday(t *test
 	nextMonday := date(2026, 5, 18)
 	item := makeTriageItem("this-week", "", capture)
 
-	triage, _ := ClassifyItem(item, nextMonday, 3)
+	triage, _ := ClassifyItem(item, nextMonday, 3, time.UTC, 0)
 	if triage == TriageNormal {
 		t.Errorf("acceptance: this-week captured Monday should be overdue on following Monday")
 	}
@@ -403,7 +403,7 @@ func TestAcceptanceCriteria_SomedayNeverOverdue(t *testing.T) {
 	today := date(2026, 5, 16)
 	item := makeTriageItem("someday", "", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage != TriageNormal || days != 0 {
 		t.Errorf("acceptance: someday items are never overdue, got triage=%v days=%d", triage, days)
 	}
@@ -416,7 +416,7 @@ func TestAcceptanceCriteria_DueDateOverridesPriority(t *testing.T) {
 	capture := date(2026, 5, 1)
 	item := makeTriageItem("someday", "2026-05-10", capture)
 
-	triage, days := ClassifyItem(item, today, 3)
+	triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 	if triage == TriageNormal {
 		t.Errorf("acceptance: due 2026-05-10 item should be overdue on 2026-05-11")
 	}
@@ -433,7 +433,7 @@ func TestAcceptanceCriteria_OneTwoDaysOverdueIsTriageOverdue(t *testing.T) {
 		capture := today.AddDate(0, 0, -daysOld)
 		item := makeTriageItem("tomorrow", "", capture)
 
-		triage, days := ClassifyItem(item, today, 3)
+		triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 		if triage != TriageOverdue {
 			t.Errorf("acceptance: %d days overdue should be TriageOverdue, got %v", daysOld, triage)
 		}
@@ -451,7 +451,7 @@ func TestAcceptanceCriteria_ThreePlusDaysOverdueIsTriageStale(t *testing.T) {
 		capture := today.AddDate(0, 0, -daysOld)
 		item := makeTriageItem("tomorrow", "", capture)
 
-		triage, days := ClassifyItem(item, today, 3)
+		triage, days := ClassifyItem(item, today, 3, time.UTC, 0)
 		if triage != TriageStale {
 			t.Errorf("acceptance: %d days overdue should be TriageStale with staleDays=3, got %v", daysOld, triage)
 		}
