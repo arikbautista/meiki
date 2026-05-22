@@ -43,7 +43,11 @@ This command is idempotent and safe to re-run at any time.`,
 			fmt.Fprintln(out)
 
 			// 5. Print Stop hook snippet.
-			fmt.Fprintln(out, "--- Stop hook (paste into ~/.claude/settings.json) ---")
+			fmt.Fprintln(out, "--- Stop hook (optional, paste into ~/.claude/settings.json) ---")
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, "This hook auto-runs `meiki review` when a session ends.")
+			fmt.Fprintln(out, "Optional if MEIKI.md is already in your CLAUDE.md — the AI will")
+			fmt.Fprintln(out, "run `meiki review` on session end via the lifecycle triggers.")
 			fmt.Fprintln(out)
 			fmt.Fprintln(out, stopHookSnippet)
 			fmt.Fprintln(out)
