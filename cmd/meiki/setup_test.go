@@ -122,6 +122,7 @@ func TestSetup_outputContainsStopHook(t *testing.T) {
 		`"Stop"`,
 		`meiki review --silent`,
 		"settings.json",
+		"Optional if MEIKI.md",
 	}
 	for _, frag := range expectedFragments {
 		if !strings.Contains(stdout, frag) {
